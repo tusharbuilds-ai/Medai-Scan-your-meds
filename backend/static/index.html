@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>MediScan AI — Medicine Analyzer</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --cream:#faf7f2;
+  --white:#ffffff;
+  --dark:#1a1208;
+  --red:#c0392b;
+  --green:#27ae60;
+  --border:#e8e0d4;
+  --muted:#9e8f7e;
+  --mono:'DM Mono',monospace;
+  --serif:'DM Serif Display',serif;
+  --sans:'DM Sans',sans-serif;
+}
+body{
+  background:var(--cream);
+  color:var(--dark);
+  font-family:var(--sans);
+  min-height:100vh;
+  display:flex;
+  flex-direction:column;
+}
+body::after{
+  content:'';
+  position:fixed;inset:0;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+  pointer-events:none;z-index:0;
+}
+
+/* HEADER */
+header{
+  padding:20px 40px;
+  border-bottom:1px solid var(--border);
+  display:flex;align-items:center;
+  justify-content:space-between;
+  position:relative;z-index:1;
+  background:var(--cream);
+}
+.logo{font-family:var(--serif);font-size:22px;}
+.logo span{color:var(--red);}
+.header-pill{
+  font-family:var(--mono);font-size:10px;
+  letter-spacing:0.12em;color:var(--muted);
+  border:1px solid var(--border);padding:5px 12px;
+  border-radius:20px;
+}
+
+/* MAIN */
+main{
+  flex:1;display:flex;flex-direction:column;
+  align-items:center;padding:48px 24px;
+  position:relative;z-index:1;gap:24px;
+}
+
+/* HERO */
+.hero{text-align:center;max-width:500px;}
+.hero h1{
+  font-family:var(--serif);
+  font-size:clamp(36px,7vw,64px);
+  line-height:1.05;margin-bottom:12px;
+}
+.hero h1 em{font-style:italic;color:var(--red);}
+.hero p{font-size:14px;color:var(--muted);line-height:1.6;}
+
+/* CARD */
+.card{
+  width:100%;max-width:480px;
+  background:var(--white);
+  border:1px solid var(--border);
+  border-radius:2px;padding:28px;
+  box-shadow:3px 3px 0 var(--border);
+}
+
+/* UPLOAD ZONE */
+.upload-zone{
+  border:2px dashed var(--border);
+  border-radius:2px;padding:40px 20px;
+  text-align:center;cursor:pointer;
+  transition:all 0.2s;position:relative;
+  background:var(--cream);
+}
+.upload-zone:hover{border-color:var(--red);background:#fff9f7;}
+.upload-zone.has-file{border-color:var(--green);border-style:solid;}
+.upload-zone.dragover{border-color:var(--red);background:#fff9f7;}
+#file-input{
+  position:absolute;inset:0;opacity:0;
+  cursor:pointer;width:100%;height:100%;
+}
+.upload-emoji{font-size:40px;margin-bottom:12px;display:block;}
+.upload-title{font-family:var(--serif);font-size:18px;margin-bottom:6px;}
+.upload-hint{font-size:12px;color:var(--muted);}
+
+/* PREVIEW */
+#preview-section{display:none;margin-top:16px;}
+.img-wrap{position:relative;border:1px solid var(--border);}
+#preview-img{width:100%;height:180px;object-fit:cover;display:block;}
+.img-badge{
+  position:absolute;top:8px;left:8px;
+  background:var(--green);color:white;
+  font-family:var(--mono);font-size:9px;
+  padding:3px 8px;letter-spacing:0.1em;
+}
+.btn-remove{
+  position:absolute;top:8px;right:8px;
+  background:var(--red);color:white;border:none;
+  font-family:var(--mono);font-size:10px;
+  padding:4px 10px;cursor:pointer;
+}
+
+/* SCAN BUTTON */
+.btn-scan{
+  width:100%;margin-top:16px;padding:15px;
+  background:var(--dark);color:var(--white);
+  border:none;font-family:var(--mono);
+  font-size:12px;letter-spacing:0.15em;
+  cursor:pointer;text-transform:uppercase;
+  transition:background 0.2s;
+  position:relative;overflow:hidden;
+}
+.btn-scan:hover{background:#2d1f0a;}
+.btn-scan:disabled{background:#ccc;cursor:not-allowed;}
+.loading-bar{
+  position:absolute;bottom:0;left:0;
+  height:2px;background:var(--red);width:0%;
+}
+.btn-scan.loading .loading-bar{
+  animation:loadBar 1.5s ease-in-out infinite;
+}
+@keyframes loadBar{
+  0%{width:0%;left:0;}50%{width:100%;left:0;}100%{width:0%;left:100%;}
+}
+
+/* STATUS */
+#status{
+  margin-top:12px;padding:10px 14px;
+  font-family:var(--mono);font-size:11px;
+  border-left:3px solid var(--red);
+  background:#fff9f7;display:none;
+  letter-spacing:0.03em;
+}
+#status.ok{border-color:var(--green);background:#f7fff9;}
+
+/* RESULT SECTION */
+#result-section{
+  width:100%;max-width:480px;
+  display:none;
+}
+
+/* STREAMING BOX */
+.analysis-box{
+  background:var(--white);
+  border:1px solid var(--border);
+  padding:24px;
+  box-shadow:3px 3px 0 var(--border);
+}
+.analysis-top{
+  display:flex;align-items:center;
+  justify-content:space-between;
+  margin-bottom:16px;padding-bottom:12px;
+  border-bottom:1px solid var(--border);
+}
+.analysis-label{
+  font-family:var(--mono);font-size:10px;
+  color:var(--muted);letter-spacing:0.15em;
+  text-transform:uppercase;
+}
+.status-badge{
+  font-family:var(--mono);font-size:9px;
+  padding:2px 8px;letter-spacing:0.1em;
+}
+.status-badge.generating{
+  background:#f39c12;color:white;
+}
+.status-badge.done{
+  background:var(--green);color:white;
+}
+
+/* Typing cursor */
+.analysis-content{
+  font-size:14px;line-height:1.8;
+  color:var(--dark);white-space:pre-wrap;
+  min-height:60px;
+}
+.cursor-blink{
+  display:inline-block;
+  width:2px;height:16px;
+  background:var(--red);
+  margin-left:2px;
+  vertical-align:middle;
+  animation:blink 0.8s step-end infinite;
+}
+@keyframes blink{0%,100%{opacity:1;}50%{opacity:0;}}
+
+/* WARNING */
+.warning{
+  margin-top:16px;padding:12px;
+  border-left:3px solid var(--red);
+  background:#fff9f7;
+  font-size:12px;color:var(--red);
+  font-family:var(--mono);line-height:1.5;
+  display:none;
+}
+
+/* MEDICAL FACTS */
+#facts-box{
+  background:var(--white);
+  border:1px solid var(--border);
+  padding:20px;margin-bottom:2px;
+  display:none;
+}
+.facts-label{
+  font-family:var(--mono);font-size:9px;
+  color:var(--muted);letter-spacing:0.15em;
+  margin-bottom:10px;
+  text-transform:uppercase;
+}
+.fact-text{
+  font-size:13px;color:var(--dark);
+  line-height:1.6;
+  transition:opacity 0.3s;
+}
+
+/* SCAN AGAIN */
+.btn-again{
+  width:100%;max-width:480px;
+  padding:13px;background:transparent;
+  border:1px solid var(--border);
+  font-family:var(--mono);font-size:11px;
+  letter-spacing:0.1em;cursor:pointer;
+  color:var(--muted);transition:all 0.2s;
+  display:none;margin-top:4px;
+}
+.btn-again:hover{border-color:var(--dark);color:var(--dark);}
+
+/* FOOTER */
+footer{
+  border-top:1px solid var(--border);
+  padding:16px 40px;
+  font-family:var(--mono);font-size:10px;
+  color:var(--muted);text-align:center;
+  letter-spacing:0.05em;
+  position:relative;z-index:1;
+}
+
+@keyframes fadeUp{
+  from{opacity:0;transform:translateY(12px);}
+  to{opacity:1;transform:translateY(0);}
+}
+.fade-up{animation:fadeUp 0.4s ease forwards;}
+
+@media(max-width:600px){
+  header{padding:14px 20px;}
+  main{padding:32px 16px;}
+  .card{padding:20px;}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">Medi<span>Scan</span></div>
+  <div class="header-pill">Gemini Vision AI</div>
+</header>
+
+<main>
+
+  <div class="hero">
+    <h1>Know your<br/><em>medicine.</em></h1>
+    <p>Photograph any medicine. Get instant AI-powered analysis in your language.</p>
+  </div>
+
+  <!-- Upload Card -->
+  <div class="card" id="upload-card">
+    <div class="upload-zone" id="upload-zone">
+      <input type="file" id="file-input" accept="image/*"/>
+      <span class="upload-emoji">💊</span>
+      <div class="upload-title">Drop medicine photo here</div>
+      <div class="upload-hint">Click to browse · JPG PNG WEBP · Max 5MB</div>
+    </div>
+
+    <div id="preview-section">
+      <div class="img-wrap">
+        <img id="preview-img" src="" alt="Medicine preview"/>
+        <div class="img-badge">READY TO SCAN</div>
+        <button class="btn-remove" onclick="removeImage()">✕ Remove</button>
+      </div>
+    </div>
+
+    <button class="btn-scan" id="scan-btn" onclick="startScan()" disabled>
+      <div class="loading-bar"></div>
+      Analyze Medicine
+    </button>
+
+    <div id="status"></div>
+  </div>
+
+  <!-- Result Section -->
+  <div id="result-section">
+
+    <!-- Medical Facts (shows while streaming) -->
+    <div id="facts-box">
+      <div class="facts-label">💡 Did you know?</div>
+      <div class="fact-text" id="fact-text"></div>
+    </div>
+
+    <!-- Analysis Streaming Box -->
+    <div class="analysis-box fade-up">
+      <div class="analysis-top">
+        <span class="analysis-label">Analysis</span>
+        <span class="status-badge generating" id="status-badge">Generating...</span>
+      </div>
+      <div class="analysis-content" id="analysis-text">
+        <span class="cursor-blink" id="cursor"></span>
+      </div>
+      <div class="warning" id="warning-box">
+        ⚠ Always consult your doctor before taking any medication. This is for informational purposes only.
+      </div>
+    </div>
+
+  </div>
+
+  <button class="btn-again" id="again-btn" onclick="resetScan()">
+    ↺ Scan Another Medicine
+  </button>
+
+</main>
+
+<footer>
+  MediScan AI · Powered by Gemini Vision · For informational use only
+</footer>
+
+<script>
+  let selectedFile = null
+  let factInterval = null
+
+  const FACTS = [
+    "💊 Always check expiry dates before taking any medicine.",
+    "💧 Most medicines work best when taken with a full glass of water.",
+    "🌡️ Store medicines in a cool, dry place away from sunlight.",
+    "⏰ Never skip prescribed doses without consulting your doctor.",
+    "🍽️ Some medicines should be taken with food to avoid stomach upset.",
+    "🚫 Never share prescription medicines with others.",
+    "📋 Keep a list of all medicines you take for doctor visits.",
+    "⚗️ Check for drug interactions before combining medicines."
+  ]
+
+  // File input
+  document.getElementById('file-input').addEventListener('change', e => {
+    if(e.target.files[0]) handleFile(e.target.files[0])
+  })
+
+  // Drag & drop
+  const zone = document.getElementById('upload-zone')
+  zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('dragover') })
+  zone.addEventListener('dragleave', () => zone.classList.remove('dragover'))
+  zone.addEventListener('drop', e => {
+    e.preventDefault()
+    zone.classList.remove('dragover')
+    if(e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0])
+  })
+
+  function handleFile(file) {
+    if(!file.type.startsWith('image/')) {
+      showStatus('Only image files supported.', false)
+      return
+    }
+    if(file.size > 5 * 1024 * 1024) {
+      showStatus('File too large. Max 5MB.', false)
+      return
+    }
+    selectedFile = file
+    const reader = new FileReader()
+    reader.onload = e => {
+      document.getElementById('preview-img').src = e.target.result
+      document.getElementById('preview-section').style.display = 'block'
+      zone.classList.add('has-file')
+    }
+    reader.readAsDataURL(file)
+    document.getElementById('scan-btn').disabled = false
+    hideStatus()
+  }
+
+  function removeImage() {
+    selectedFile = null
+    document.getElementById('preview-section').style.display = 'none'
+    zone.classList.remove('has-file')
+    document.getElementById('file-input').value = ''
+    document.getElementById('scan-btn').disabled = true
+    hideStatus()
+  }
+
+  async function startScan() {
+    if(!selectedFile) return
+
+    const btn = document.getElementById('scan-btn')
+    btn.disabled = true
+    btn.classList.add('loading')
+    btn.querySelector('.loading-bar').style.display = 'block'
+    showStatus('Uploading image...', true)
+
+    try {
+      // STEP 1 — Upload
+      const formData = new FormData()
+      formData.append('file', selectedFile)
+
+      const uploadRes = await fetch('/upload-image', {
+        method: 'POST',
+        body: formData
+      })
+
+      if(!uploadRes.ok) {
+        const err = await uploadRes.json()
+        throw new Error(err.detail || 'Upload failed')
+      }
+
+      const { file_name } = await uploadRes.json()
+
+      // STEP 2 — Show result section immediately
+      document.getElementById('upload-card').style.display = 'none'
+      hideStatus()
+      document.getElementById('result-section').style.display = 'block'
+
+      // Show medical facts while loading
+      startFacts()
+
+      // STEP 3 — Stream analysis
+      const analyzeRes = await fetch(
+        `/analyze-image?file_name=${file_name}`,
+        { method: 'POST' }
+      )
+
+      if(!analyzeRes.ok) {
+        throw new Error('Analysis failed')
+      }
+
+      // Read stream chunk by chunk
+      const reader = analyzeRes.body.getReader()
+      const decoder = new TextDecoder()
+      let fullText = ''
+      const analysisEl = document.getElementById('analysis-text')
+      const cursor = document.getElementById('cursor')
+
+      // Clear loading cursor
+      analysisEl.innerHTML = ''
+      analysisEl.appendChild(cursor)
+
+      while(true) {
+        const { done, value } = await reader.read()
+        if(done) break
+
+        const chunk = decoder.decode(value)
+        fullText += chunk
+
+        // Insert text before cursor
+        const textNode = document.createTextNode(chunk)
+        analysisEl.insertBefore(textNode, cursor)
+
+        // Auto scroll
+        analysisEl.scrollTop = analysisEl.scrollHeight
+      }
+
+      // Done streaming
+      onStreamComplete()
+
+    } catch(err) {
+      showStatus(`Error: ${err.message}`, false)
+      document.getElementById('upload-card').style.display = 'block'
+      document.getElementById('result-section').style.display = 'none'
+      btn.disabled = false
+      btn.classList.remove('loading')
+      stopFacts()
+    }
+  }
+
+  function onStreamComplete() {
+    // Hide cursor
+    const cursor = document.getElementById('cursor')
+    if(cursor) cursor.style.display = 'none'
+
+    // Update badge
+    const badge = document.getElementById('status-badge')
+    badge.textContent = 'Complete'
+    badge.className = 'status-badge done'
+
+    // Show warning
+    document.getElementById('warning-box').style.display = 'block'
+
+    // Hide facts
+    stopFacts()
+    document.getElementById('facts-box').style.display = 'none'
+
+    // Show scan again
+    document.getElementById('again-btn').style.display = 'block'
+  }
+
+  function startFacts() {
+    const factsBox = document.getElementById('facts-box')
+    const factText = document.getElementById('fact-text')
+
+    factsBox.style.display = 'block'
+    factText.textContent = FACTS[0]
+
+    let i = 0
+    factInterval = setInterval(() => {
+      factText.style.opacity = '0'
+      setTimeout(() => {
+        i = (i + 1) % FACTS.length
+        factText.textContent = FACTS[i]
+        factText.style.opacity = '1'
+      }, 300)
+    }, 3000)
+  }
+
+  function stopFacts() {
+    if(factInterval) {
+      clearInterval(factInterval)
+      factInterval = null
+    }
+  }
+
+  function resetScan() {
+    selectedFile = null
+    stopFacts()
+
+    // Reset UI
+    document.getElementById('upload-card').style.display = 'block'
+    document.getElementById('result-section').style.display = 'none'
+    document.getElementById('again-btn').style.display = 'none'
+    document.getElementById('preview-section').style.display = 'none'
+    document.getElementById('facts-box').style.display = 'none'
+    document.getElementById('warning-box').style.display = 'none'
+    zone.classList.remove('has-file')
+    document.getElementById('file-input').value = ''
+
+    // Reset scan button
+    const btn = document.getElementById('scan-btn')
+    btn.disabled = true
+    btn.classList.remove('loading')
+
+    // Reset analysis
+    const analysisEl = document.getElementById('analysis-text')
+    analysisEl.innerHTML = ''
+    const cursor = document.createElement('span')
+    cursor.className = 'cursor-blink'
+    cursor.id = 'cursor'
+    cursor.style.display = 'inline-block'
+    analysisEl.appendChild(cursor)
+
+    // Reset badge
+    const badge = document.getElementById('status-badge')
+    badge.textContent = 'Generating...'
+    badge.className = 'status-badge generating'
+
+    hideStatus()
+  }
+
+  function showStatus(msg, ok) {
+    const s = document.getElementById('status')
+    s.textContent = msg
+    s.className = ok ? 'ok' : ''
+    s.style.display = 'block'
+  }
+
+  function hideStatus() {
+    document.getElementById('status').style.display = 'none'
+  }
+</script>
+
+</body>
+</html>
